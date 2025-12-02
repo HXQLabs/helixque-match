@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Generated files
+*.min.js
+*.min.css
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+
+# Package manager files
+package-lock.json
+yarn.lock
+
