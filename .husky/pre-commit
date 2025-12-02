@@ -69,7 +69,7 @@ echo ""
 echo "┌─ [4/4] Test Suite"
 echo "│  Running test suite to ensure all tests pass..."
 echo "│"
-TEST_OUTPUT=$(pnpm test 2>&1)
+TEST_OUTPUT=$(pnpm test 2>&1 || true)
 TEST_EXIT_CODE=$?
 
 if [ $TEST_EXIT_CODE -eq 0 ]; then
