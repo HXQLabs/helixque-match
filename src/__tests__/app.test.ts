@@ -78,4 +78,3 @@ describe("App", () => {
     expect(preferencesResponse.statusCode).toBe(200);
   });
 });
-

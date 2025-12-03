@@ -36,4 +36,3 @@ describe("Env Config", () => {
     expect(Number.isInteger(env.PORT)).toBe(true);
   });
 });
-

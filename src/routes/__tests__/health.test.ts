@@ -32,4 +32,3 @@ describe("Health Route", () => {
     expect(response.headers["content-type"]).toContain("application/json");
   });
 });
-

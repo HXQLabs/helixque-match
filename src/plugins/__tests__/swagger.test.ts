@@ -56,10 +56,11 @@ describe("Swagger Plugin", () => {
     });
 
     const body = response.json();
-    expect(body.info.description).toBe("API documentation for Helixque Match backend");
+    expect(body.info.description).toBe(
+      "API documentation for Helixque Match backend"
+    );
     expect(body.servers).toBeDefined();
     expect(Array.isArray(body.servers)).toBe(true);
     expect(body.servers[0].url).toBe("http://localhost:4000");
   });
 });
-

@@ -144,14 +144,9 @@ describe("Response Utils", () => {
     });
 
     it("should return the reply object for chaining", () => {
-      const result = sendError(
-        mockReply as FastifyReply,
-        400,
-        "Error"
-      );
+      const result = sendError(mockReply as FastifyReply, 400, "Error");
 
       expect(result).toBe(mockReply);
     });
   });
 });
-

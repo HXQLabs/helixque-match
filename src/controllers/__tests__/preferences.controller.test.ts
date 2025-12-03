@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FastifyRequest, FastifyReply } from "fastify";
-import {
-  listPreferences,
-  createPreference,
-} from "../preferences.controller";
+import { listPreferences, createPreference } from "../preferences.controller";
 
 describe("Preferences Controller", () => {
   let mockRequest: Partial<FastifyRequest>;
@@ -189,4 +186,3 @@ describe("Preferences Controller", () => {
     });
   });
 });
-

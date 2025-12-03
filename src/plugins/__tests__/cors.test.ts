@@ -8,7 +8,7 @@ describe("CORS Plugin", () => {
 
   beforeAll(async () => {
     app = Fastify();
-    
+
     app.get("/test-cors", async (_request, reply) => {
       return reply.send({ test: true });
     });
@@ -71,4 +71,3 @@ describe("CORS Plugin", () => {
     expect(app.hasPlugin("@fastify/cors")).toBe(true);
   });
 });
-
