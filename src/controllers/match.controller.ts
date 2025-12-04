@@ -15,7 +15,7 @@ const queues: Map<string, Array<Record<string, unknown>>> = new Map();
 const userQueues: Map<string, Record<string, unknown>> = new Map();
 const matches: Map<string, Record<string, unknown>> = new Map();
 const bannedUsers: Set<string> = new Set();
-const deprioritizedUsers: Map<string, { until: Date; reason: string }> =
+const _deprioritizedUsers: Map<string, { until: Date; reason: string }> =
   new Map();
 
 /**
@@ -62,7 +62,7 @@ export const joinMatch = async (
     }
 
     // Mock user validation
-    const user = {
+    const _user = {
       id: userId,
       status: "OFFLINE",
       preferences,
@@ -210,7 +210,7 @@ export const submitFeedback = async (
 
     // Mock: Store feedback and update user rating
     const feedbackId = `feedback_${Date.now()}`;
-    const feedback = {
+    const _feedback = {
       id: feedbackId,
       matchId,
       fromUserId,
@@ -221,7 +221,7 @@ export const submitFeedback = async (
     };
 
     // Mock: Store feedback (in production: save to PostgreSQL)
-    const feedbackRecord = {
+    const _feedbackRecord = {
       id: feedbackId,
       matchId,
       fromUserId,

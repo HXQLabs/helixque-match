@@ -108,7 +108,7 @@ export const getMetrics = async (
 };
 
 // Helper function to calculate average wait time (mock implementation)
-function calculateAverageWaitTime(): number {
+function _calculateAverageWaitTime(): number {
   // In production, this would calculate from actual queue data
   return 45.5; // Mock average wait time in seconds
 }

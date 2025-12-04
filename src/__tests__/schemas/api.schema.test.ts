@@ -8,7 +8,7 @@ import {
   DeprioritizeUserRequestSchema,
   HealthCheckResponseSchema,
   MetricsResponseSchema,
-} from "../api.schema";
+} from "../../schemas/api.schema";
 
 describe("API Schema", () => {
   const mockPreferences = {

@@ -4,7 +4,6 @@ import {
   BanUserResponse,
   DeprioritizeUserRequestSchema,
   DeprioritizeUserResponse,
-  QueueDebugResponse,
   ErrorResponse,
 } from "../schemas/api.schema";
 
@@ -13,7 +12,7 @@ const bannedUsers: Set<string> = new Set();
 const deprioritizedUsers: Map<string, { until: Date; reason: string }> =
   new Map();
 const queues: Map<string, Array<Record<string, unknown>>> = new Map();
-const matches: Map<string, Record<string, unknown>> = new Map();
+const _matches: Map<string, Record<string, unknown>> = new Map();
 
 /**
  * Admin endpoint: Ban a user
@@ -39,7 +38,7 @@ export const banUser = async (request: FastifyRequest, reply: FastifyReply) => {
     bannedUsers.add(userId);
 
     // Remove from queues if present
-    const user = {
+    const _user = {
       id: userId,
       banned: true,
       bannedAt: new Date().toISOString(),
@@ -136,7 +135,7 @@ export const getQueueInfo = async (
     const { key } = request.params;
     const page = parseInt(request.query.page || "1");
     const limit = parseInt(request.query.limit || "10");
-    const offset = (page - 1) * limit;
+    const _offset = (page - 1) * limit;
 
     const queue = queues.get(key) || [];
     const totalItems = queue.length;
