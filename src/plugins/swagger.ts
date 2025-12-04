@@ -58,8 +58,8 @@ const swaggerPlugin: FastifyPluginAsync = async (app) => {
         `,
         contact: {
           name: "Helixque Team",
-          email: "support@helixque.com"
-        }
+          email: "support@helixque.com",
+        },
       },
       servers: [
         {
@@ -67,40 +67,44 @@ const swaggerPlugin: FastifyPluginAsync = async (app) => {
           description: "Local development server",
         },
         {
-          url: "https://api-staging.helixque.com", 
-          description: "Staging environment"
+          url: "https://api-staging.helixque.com",
+          description: "Staging environment",
         },
         {
           url: "https://api.helixque.com",
-          description: "Production environment"
-        }
+          description: "Production environment",
+        },
       ],
       tags: [
         {
           name: "WebSocket API",
-          description: "Real-time WebSocket communication for matching and signaling"
+          description:
+            "Real-time WebSocket communication for matching and signaling",
         },
         {
-          name: "Internal Match API", 
-          description: "Internal HTTP endpoints for matching service operations"
+          name: "Internal Match API",
+          description:
+            "Internal HTTP endpoints for matching service operations",
         },
         {
           name: "Admin API",
-          description: "Administrative endpoints for user management and moderation"
+          description:
+            "Administrative endpoints for user management and moderation",
         },
         {
           name: "Debug API",
-          description: "Debugging endpoints for queue inspection and troubleshooting"
+          description:
+            "Debugging endpoints for queue inspection and troubleshooting",
         },
         {
           name: "System",
-          description: "System health, metrics, and monitoring endpoints"
+          description: "System health, metrics, and monitoring endpoints",
         },
         {
           name: "Legacy",
-          description: "Existing preference management endpoints"
-        }
-      ]
+          description: "Existing preference management endpoints",
+        },
+      ],
     },
   });
 
@@ -108,18 +112,18 @@ const swaggerPlugin: FastifyPluginAsync = async (app) => {
     routePrefix: "/docs",
     staticCSP: true,
     uiConfig: {
-      docExpansion: 'list',
-      deepLinking: false
+      docExpansion: "list",
+      deepLinking: false,
     },
     uiHooks: {
       onRequest: function (request, reply, next) {
-        next()
+        next();
       },
       preHandler: function (request, reply, next) {
-        next()
-      }
+        next();
+      },
     },
-    transformSpecificationClone: true
+    transformSpecificationClone: true,
   });
 };
 

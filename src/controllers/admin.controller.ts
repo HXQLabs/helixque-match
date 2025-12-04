@@ -5,57 +5,58 @@ import {
   DeprioritizeUserRequestSchema,
   DeprioritizeUserResponse,
   QueueDebugResponse,
-  ErrorResponse
+  ErrorResponse,
 } from "../schemas/api.schema";
 
-// Mock data stores (same references as match controller)
-const mockQueues = new Map<string, any[]>();
-const mockUsers = new Map<string, any>();
-const mockBannedUsers = new Set<string>();
+// Mock data stores (in production, these would be Redis/PostgreSQL)
+const bannedUsers: Set<string> = new Set();
+const deprioritizedUsers: Map<string, { until: Date; reason: string }> =
+  new Map();
+const queues: Map<string, Array<Record<string, unknown>>> = new Map();
+const matches: Map<string, Record<string, unknown>> = new Map();
 
 /**
  * Admin endpoint: Ban a user
  * POST /admin/ban
  */
-export const banUser = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => {
+export const banUser = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const result = BanUserRequestSchema.safeParse(request.body);
-    
+
     if (!result.success) {
       return reply.status(400).send({
         success: false,
         error: {
           code: 400,
-          message: "Invalid request payload"
-        }
+          message: "Invalid request payload",
+        },
       } as ErrorResponse);
     }
 
     const { userId, reason } = result.data;
 
     // Mock: Add user to banned list
-    mockBannedUsers.add(userId);
-    
-    // Mock: Update user record
-    const user = mockUsers.get(userId) || { id: userId };
-    user.banned = true;
-    user.banReason = reason;
-    user.bannedAt = new Date();
-    user.status = 'OFFLINE';
-    mockUsers.set(userId, user);
+    bannedUsers.add(userId);
 
-    // Mock: Remove user from all queues
-    for (const [queueKey, queue] of mockQueues) {
-      const filteredQueue = queue.filter(item => item.userId !== userId);
-      mockQueues.set(queueKey, filteredQueue);
+    // Remove from queues if present
+    const user = {
+      id: userId,
+      banned: true,
+      bannedAt: new Date().toISOString(),
+      banReason: reason,
+    };
+
+    // Remove from all queues
+    for (const [queueKey, queue] of queues) {
+      const filteredQueue = queue.filter(
+        (item: Record<string, unknown>) => item.userId !== userId
+      );
+      queues.set(queueKey, filteredQueue);
     }
 
     const response: BanUserResponse = {
       success: true,
-      message: `User ${userId} has been banned successfully`
+      message: `User ${userId} has been banned successfully`,
     };
 
     return reply.send(response);
@@ -65,8 +66,8 @@ export const banUser = async (
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };
@@ -81,30 +82,30 @@ export const deprioritizeUser = async (
 ) => {
   try {
     const result = DeprioritizeUserRequestSchema.safeParse(request.body);
-    
+
     if (!result.success) {
       return reply.status(400).send({
         success: false,
         error: {
           code: 400,
-          message: "Invalid request payload"
-        }
+          message: "Invalid request payload",
+        },
       } as ErrorResponse);
     }
 
-    const { userId, reason, duration = 60 } = result.data;
+    const {
+      userId,
+      reason = "No reason provided",
+      duration = 60,
+    } = result.data;
 
-    // Mock: Update user priority
-    const user = mockUsers.get(userId) || { id: userId };
-    user.deprioritized = true;
-    user.deprioritizeReason = reason;
-    user.deprioritizedAt = new Date();
-    user.deprioritizeUntil = new Date(Date.now() + duration * 60 * 1000);
-    mockUsers.set(userId, user);
+    // Store deprioritization info
+    const deprioritizeUntil = new Date(Date.now() + duration * 60 * 1000);
+    deprioritizedUsers.set(userId, { until: deprioritizeUntil, reason });
 
     const response: DeprioritizeUserResponse = {
       success: true,
-      message: `User ${userId} has been deprioritized for ${duration} minutes`
+      message: `User ${userId} has been deprioritized for ${duration} minutes`,
     };
 
     return reply.send(response);
@@ -114,8 +115,8 @@ export const deprioritizeUser = async (
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };
@@ -125,43 +126,47 @@ export const deprioritizeUser = async (
  * GET /debug/queue/:key
  */
 export const getQueueInfo = async (
-  request: FastifyRequest<{ Params: { key: string }, Querystring: { page?: string, limit?: string } }>,
+  request: FastifyRequest<{
+    Params: { key: string };
+    Querystring: { page?: string; limit?: string };
+  }>,
   reply: FastifyReply
 ) => {
   try {
     const { key } = request.params;
-    const page = parseInt(request.query.page || '1');
-    const limit = parseInt(request.query.limit || '10');
+    const page = parseInt(request.query.page || "1");
+    const limit = parseInt(request.query.limit || "10");
     const offset = (page - 1) * limit;
 
-    const queue = mockQueues.get(key) || [];
-    const total = queue.length;
-    const paginatedUsers = queue.slice(offset, offset + limit);
+    const queue = queues.get(key) || [];
+    const totalItems = queue.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedUsers = queue.slice(startIndex, endIndex);
 
-    const response: QueueDebugResponse = {
+    return reply.send({
       queueKey: key,
-      length: total,
-      users: paginatedUsers.map(user => ({
+      length: totalItems,
+      users: paginatedUsers.map((user: Record<string, unknown>) => ({
         userId: user.userId,
         joinedAt: user.joinedAt,
-        preferences: user.preferences
+        preferences: user.preferences,
       })),
       pagination: {
         page,
         limit,
-        total
-      }
-    };
-
-    return reply.send(response);
+        totalPages: Math.ceil(totalItems / limit),
+      },
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
     request.log.error({ error }, "Error in getQueueInfo");
     return reply.status(500).send({
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };

@@ -2,14 +2,14 @@ import { z } from "zod";
 
 // Enums
 export const UserStatus = z.enum([
-  'OFFLINE',
-  'ONLINE', 
-  'WAITING_STRICT',
-  'WAITING_LOOSE',
-  'IN_CALL'
+  "OFFLINE",
+  "ONLINE",
+  "WAITING_STRICT",
+  "WAITING_LOOSE",
+  "IN_CALL",
 ]);
 
-export const MatchMode = z.enum(['STRICT', 'LOOSE']);
+export const MatchMode = z.enum(["STRICT", "LOOSE"]);
 
 // User Preferences Schema (10 profile fields)
 export const UserPreferencesSchema = z.object({
@@ -22,7 +22,7 @@ export const UserPreferencesSchema = z.object({
   timezone: z.string().describe("User timezone"),
   projectType: z.string().describe("Type of project preferred"),
   communicationStyle: z.string().describe("Communication preference"),
-  goals: z.array(z.string()).describe("Learning/collaboration goals")
+  goals: z.array(z.string()).describe("Learning/collaboration goals"),
 });
 
 // User Schema
@@ -33,13 +33,16 @@ export const UserSchema = z.object({
   displayName: z.string().optional(),
   email: z.string().email().optional(),
   preferences: UserPreferencesSchema,
-  strictPrefKey: z.string().optional().describe("Normalized preference string for strict matching"),
+  strictPrefKey: z
+    .string()
+    .optional()
+    .describe("Normalized preference string for strict matching"),
   ratingScore: z.number().default(0),
   ratingCount: z.number().default(0),
   reportsCount: z.number().default(0),
-  status: UserStatus.default('OFFLINE'),
+  status: UserStatus.default("OFFLINE"),
   lastSeen: z.date().optional(),
-  currentMatchId: z.string().optional()
+  currentMatchId: z.string().optional(),
 });
 
 // Match Schema
@@ -54,7 +57,7 @@ export const MatchSchema = z.object({
   ratingA: z.number().min(1).max(5).optional(),
   ratingB: z.number().min(1).max(5).optional(),
   tagsA: z.array(z.string()).optional(),
-  tagsB: z.array(z.string()).optional()
+  tagsB: z.array(z.string()).optional(),
 });
 
 // Feedback Schema
@@ -65,7 +68,7 @@ export const FeedbackSchema = z.object({
   toUserId: z.string(),
   rating: z.number().min(1).max(5),
   tags: z.array(z.string()).optional(),
-  createdAt: z.date()
+  createdAt: z.date(),
 });
 
 // Type exports

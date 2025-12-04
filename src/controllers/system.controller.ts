@@ -2,12 +2,10 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import {
   HealthCheckResponse,
   MetricsResponse,
-  ErrorResponse
+  ErrorResponse,
 } from "../schemas/api.schema";
 
-// Mock data stores
-const mockQueues = new Map<string, any[]>();
-const mockMatches = new Map<string, any>();
+// Mock data stores (in production, these would be Redis/PostgreSQL)
 const startTime = Date.now();
 
 /**
@@ -29,8 +27,8 @@ export const healthCheck = async (
         error: {
           code: 503,
           message: "Service unhealthy",
-          details: `Redis: ${redisHealthy ? 'OK' : 'FAIL'}, Postgres: ${postgresHealthy ? 'OK' : 'FAIL'}`
-        }
+          details: `Redis: ${redisHealthy ? "OK" : "FAIL"}, Postgres: ${postgresHealthy ? "OK" : "FAIL"}`,
+        },
       } as ErrorResponse);
     }
 
@@ -39,9 +37,9 @@ export const healthCheck = async (
       timestamp: new Date(),
       services: {
         redis: redisHealthy,
-        postgres: postgresHealthy
+        postgres: postgresHealthy,
       },
-      uptime: Date.now() - startTime
+      uptime: Date.now() - startTime,
     };
 
     return reply.send(response);
@@ -51,8 +49,8 @@ export const healthCheck = async (
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };
@@ -66,47 +64,34 @@ export const getMetrics = async (
   reply: FastifyReply
 ) => {
   try {
-    // Mock metrics calculation
-    const queues = {
-      strict_total: mockQueues.get('strict_queue')?.length || 0,
-      loose_total: Array.from(mockQueues.entries())
-        .filter(([key]) => key.startsWith('loose_'))
-        .reduce((sum, [, queue]) => sum + queue.length, 0),
-      by_language: {}
-    } as any;
+    // Mock metrics data (in production, get from actual data stores)
+    const queueData = {
+      strict_total: 5, // Mock data
+      loose_total: 12, // Mock data
+      by_language: {
+        javascript: 8,
+        python: 4,
+        java: 3,
+        typescript: 2,
+      },
+    };
 
-    // Calculate by language
-    for (const [key, queue] of mockQueues.entries()) {
-      if (key.startsWith('loose_')) {
-        const language = key.replace('loose_', '');
-        queues.by_language[language] = queue.length;
-      }
-    }
+    const activeMatchCount = 3; // Mock data
+    const completedTodayCount = 15; // Mock data
 
-    const activeMatches = Array.from(mockMatches.values())
-      .filter(match => match.status === 'active');
-
-    const completedTodayMatches = Array.from(mockMatches.values())
-      .filter(match => {
-        if (!match.endedAt) return false;
-        const today = new Date();
-        const matchDate = new Date(match.endedAt);
-        return matchDate.toDateString() === today.toDateString();
-      });
-
-    // Mock system metrics
     const response: MetricsResponse = {
-      queues,
+      queues: queueData,
       matches: {
-        total_active: activeMatches.length,
-        completed_today: completedTodayMatches.length,
-        average_wait_time: calculateAverageWaitTime()
+        total_active: activeMatchCount,
+        completed_today: completedTodayCount,
+        average_wait_time: 45.5, // Mock average wait time in seconds
       },
       system: {
         memory_usage: process.memoryUsage().heapUsed / 1024 / 1024, // MB
-        cpu_usage: Math.random() * 100, // Mock CPU usage
-        connections: mockQueues.size + mockMatches.size
-      }
+        cpu_usage: Math.random() * 100, // Mock CPU usage percentage
+        connections:
+          queueData.strict_total + queueData.loose_total + activeMatchCount,
+      },
     };
 
     return reply.send(response);
@@ -116,25 +101,14 @@ export const getMetrics = async (
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };
 
-// Helper function to calculate average wait time
+// Helper function to calculate average wait time (mock implementation)
 function calculateAverageWaitTime(): number {
-  let totalWaitTime = 0;
-  let userCount = 0;
-
-  for (const queue of mockQueues.values()) {
-    for (const user of queue) {
-      if (user.joinedAt) {
-        totalWaitTime += Date.now() - user.joinedAt.getTime();
-        userCount++;
-      }
-    }
-  }
-
-  return userCount > 0 ? totalWaitTime / userCount / 1000 : 0; // Return in seconds
+  // In production, this would calculate from actual queue data
+  return 45.5; // Mock average wait time in seconds
 }

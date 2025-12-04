@@ -7,13 +7,16 @@ import {
   InternalFeedbackRequestSchema,
   InternalMarkEndRequestSchema,
   SuccessResponse,
-  ErrorResponse
+  ErrorResponse,
 } from "../schemas/api.schema";
 
-// Mock data store (in production, this would be Redis/Postgres)
-const mockQueues = new Map<string, any[]>();
-const mockMatches = new Map<string, any>();
-const mockUsers = new Map<string, any>();
+// Mock data stores (in production, these would be Redis/PostgreSQL)
+const queues: Map<string, Array<Record<string, unknown>>> = new Map();
+const userQueues: Map<string, Record<string, unknown>> = new Map();
+const matches: Map<string, Record<string, unknown>> = new Map();
+const bannedUsers: Set<string> = new Set();
+const deprioritizedUsers: Map<string, { until: Date; reason: string }> =
+  new Map();
 
 /**
  * Internal endpoint: Join matching queue
@@ -25,83 +28,94 @@ export const joinMatch = async (
 ) => {
   try {
     const result = InternalJoinRequestSchema.safeParse(request.body);
-    
+
     if (!result.success) {
       return reply.status(400).send({
         success: false,
         error: {
           code: 400,
           message: "Invalid request payload",
-          details: result.error.message
-        }
+          details: result.error.message,
+        },
       } as ErrorResponse);
     }
 
     const { userId, mode, preferences, requestId } = result.data;
 
     // Check for idempotency
-    if (requestId && mockUsers.has(`${userId}:${requestId}`)) {
-      const existingResponse = mockUsers.get(`${userId}:${requestId}`);
+    if (requestId && userQueues.has(`${userId}:${requestId}`)) {
+      const existingResponse = userQueues.get(`${userId}:${requestId}`);
       return reply.send(existingResponse);
     }
 
-    // Mock user validation (check if banned, etc.)
-    const user = mockUsers.get(userId) || { id: userId, status: 'ONLINE', banned: false };
-    
-    if (user.banned) {
+    // User validation passed
+
+    // Check if user is banned
+    if (bannedUsers.has(userId)) {
       return reply.status(403).send({
         success: false,
         error: {
           code: 403,
-          message: "User is banned from matching"
-        }
+          message: "User is banned from matching",
+        },
       } as ErrorResponse);
     }
 
+    // Mock user validation
+    const user = {
+      id: userId,
+      status: "OFFLINE",
+      preferences,
+      totalMatches: 0,
+      rating: 0,
+      feedback: [],
+    };
+
     // Mock matching logic
-    const queueKey = mode === 'strict' ? 'strict_queue' : `loose_${preferences.language}`;
-    const queue = mockQueues.get(queueKey) || [];
-    
+    const queueKey =
+      mode === "strict" ? "strict_queue" : `loose_${preferences.language}`;
+    const queue = queues.get(queueKey) || [];
+
     // Simple mock matching: if queue has someone, match immediately
     if (queue.length > 0) {
       const partner = queue.shift();
-      mockQueues.set(queueKey, queue);
-      
+      queues.set(queueKey, queue);
+
       const matchId = `match_${Date.now()}`;
       const match = {
         id: matchId,
-        userAId: partner.userId,
+        userAId: (partner as Record<string, unknown>).userId,
         userBId: userId,
         mode: mode.toUpperCase(),
         createdAt: new Date(),
-        status: 'active'
+        status: "active",
       };
-      
-      mockMatches.set(matchId, match);
-      
+
+      matches.set(matchId, match);
+
       const response: InternalJoinResponse = {
         status: "matched",
         matchId,
-        peerId: partner.userId,
-        prefKey: mode === 'strict' ? generatePrefKey(preferences) : undefined
+        peerId: (partner as Record<string, unknown>).userId as string,
+        prefKey: mode === "strict" ? generatePrefKey(preferences) : undefined,
       };
 
       if (requestId) {
-        mockUsers.set(`${userId}:${requestId}`, response);
+        userQueues.set(`${userId}:${requestId}`, response);
       }
 
       return reply.send(response);
     } else {
       // Add to queue
       queue.push({ userId, preferences, joinedAt: new Date() });
-      mockQueues.set(queueKey, queue);
-      
+      queues.set(queueKey, queue);
+
       const response: InternalJoinResponse = {
-        status: "waiting"
+        status: "waiting",
       };
 
       if (requestId) {
-        mockUsers.set(`${userId}:${requestId}`, response);
+        userQueues.set(`${userId}:${requestId}`, response);
       }
 
       return reply.send(response);
@@ -112,8 +126,8 @@ export const joinMatch = async (
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };
@@ -128,32 +142,34 @@ export const cancelMatch = async (
 ) => {
   try {
     const result = InternalCancelRequestSchema.safeParse(request.body);
-    
+
     if (!result.success) {
       return reply.status(400).send({
         success: false,
         error: {
           code: 400,
-          message: "Invalid request payload"
-        }
+          message: "Invalid request payload",
+        },
       } as ErrorResponse);
     }
 
     const { userId, mode } = result.data;
 
     // Remove user from all relevant queues
-    const queuesToCheck = mode ? 
-      [mode === 'strict' ? 'strict_queue' : 'loose_queue'] :
-      Array.from(mockQueues.keys());
+    const queuesToCheck = mode
+      ? [mode === "strict" ? "strict_queue" : "loose_queue"]
+      : Array.from(queues.keys());
 
     for (const queueKey of queuesToCheck) {
-      const queue = mockQueues.get(queueKey) || [];
-      const filteredQueue = queue.filter(item => item.userId !== userId);
-      mockQueues.set(queueKey, filteredQueue);
+      const queue = queues.get(queueKey) || [];
+      const filteredQueue = queue.filter(
+        (item: Record<string, unknown>) => item.userId !== userId
+      );
+      queues.set(queueKey, filteredQueue);
     }
 
     const response: InternalCancelResponse = {
-      status: "cancelled"
+      status: "cancelled",
     };
 
     return reply.send(response);
@@ -163,8 +179,8 @@ export const cancelMatch = async (
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };
@@ -179,14 +195,14 @@ export const submitFeedback = async (
 ) => {
   try {
     const result = InternalFeedbackRequestSchema.safeParse(request.body);
-    
+
     if (!result.success) {
       return reply.status(400).send({
         success: false,
         error: {
           code: 400,
-          message: "Invalid feedback payload"
-        }
+          message: "Invalid feedback payload",
+        },
       } as ErrorResponse);
     }
 
@@ -201,22 +217,26 @@ export const submitFeedback = async (
       toUserId,
       rating,
       tags,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
-    // Mock: Update user rating (simplified moving average)
-    const user = mockUsers.get(toUserId) || { id: toUserId, ratingScore: 0, ratingCount: 0 };
-    const newRatingCount = user.ratingCount + 1;
-    const newRatingScore = (user.ratingScore * user.ratingCount + rating) / newRatingCount;
-    
-    user.ratingScore = newRatingScore;
-    user.ratingCount = newRatingCount;
-    mockUsers.set(toUserId, user);
+    // Mock: Store feedback (in production: save to PostgreSQL)
+    const feedbackRecord = {
+      id: feedbackId,
+      matchId,
+      fromUserId,
+      toUserId,
+      rating,
+      tags,
+      createdAt: new Date(),
+    };
+
+    // Note: User rating updates would be handled in production database
 
     const response: SuccessResponse = {
       success: true,
       message: "Feedback submitted successfully",
-      data: { feedbackId }
+      data: { feedbackId },
     };
 
     return reply.send(response);
@@ -226,8 +246,8 @@ export const submitFeedback = async (
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };
@@ -242,53 +262,44 @@ export const markMatchEnd = async (
 ) => {
   try {
     const result = InternalMarkEndRequestSchema.safeParse(request.body);
-    
+
     if (!result.success) {
       return reply.status(400).send({
         success: false,
         error: {
           code: 400,
-          message: "Invalid request payload"
-        }
+          message: "Invalid request payload",
+        },
       } as ErrorResponse);
     }
 
     const { matchId, userId, reason } = result.data;
 
     // Mock: Update match record
-    const match = mockMatches.get(matchId);
+    const match = matches.get(matchId);
     if (!match) {
       return reply.status(404).send({
         success: false,
         error: {
           code: 404,
-          message: "Match not found"
-        }
+          message: "Match not found",
+        },
       } as ErrorResponse);
     }
 
-    match.endedAt = new Date();
-    match.endedBy = userId;
-    match.endReason = reason;
-    match.status = 'ended';
-    
-    mockMatches.set(matchId, match);
+    const updatedMatch = {
+      ...match,
+      endedAt: new Date(),
+      endedBy: userId,
+      endReason: reason,
+      status: "ended",
+    };
 
-    // Mock: Update user statuses to ONLINE
-    const userA = mockUsers.get(match.userAId) || { id: match.userAId };
-    const userB = mockUsers.get(match.userBId) || { id: match.userBId };
-    
-    userA.status = 'ONLINE';
-    userB.status = 'ONLINE';
-    userA.currentMatchId = undefined;
-    userB.currentMatchId = undefined;
-    
-    mockUsers.set(match.userAId, userA);
-    mockUsers.set(match.userBId, userB);
+    matches.set(matchId, updatedMatch);
 
     const response: SuccessResponse = {
       success: true,
-      message: "Match ended successfully"
+      message: "Match ended successfully",
     };
 
     return reply.send(response);
@@ -298,19 +309,20 @@ export const markMatchEnd = async (
       success: false,
       error: {
         code: 500,
-        message: "Internal server error"
-      }
+        message: "Internal server error",
+      },
     } as ErrorResponse);
   }
 };
 
 // Helper function to generate preference key for strict matching
-function generatePrefKey(preferences: any): string {
+function generatePrefKey(preferences: Record<string, unknown>): string {
+  const prefs = preferences as Record<string, unknown>;
   const keys = [
-    `lang=${preferences.language}`,
-    `domain=${preferences.domain}`,
-    `exp=${preferences.experience}`,
-    `stack=${preferences.techStack.sort().join(',')}`
+    `lang=${prefs.language}`,
+    `domain=${prefs.domain}`,
+    `exp=${prefs.experience}`,
+    `stack=${Array.isArray(prefs.techStack) ? prefs.techStack.sort().join(",") : ""}`,
   ];
-  return keys.join('|');
+  return keys.join("|");
 }
