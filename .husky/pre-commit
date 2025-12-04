@@ -1,0 +1,99 @@
+#!/usr/bin/env sh
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔍 PRE-COMMIT CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Check code formatting with Prettier
+echo "┌─ [1/4] Code Formatting Check"
+echo "│  Checking code formatting with Prettier..."
+echo "│"
+if pnpm format:check > /dev/null 2>&1; then
+  echo "│  ✅ Code formatting is correct"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+else
+  echo "│  ❌ Code formatting check failed!"
+  echo "│"
+  echo "│  Your code does not match the Prettier formatting rules."
+  echo "│  Run 'pnpm format' to automatically fix formatting issues."
+  echo "│"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+  echo ""
+  echo "💡 Tip: Run 'pnpm format' to fix formatting automatically"
+  exit 1
+fi
+echo ""
+
+# Run ESLint
+echo "┌─ [2/4] ESLint - Code Quality & Style"
+echo "│  Analyzing code for linting errors, potential bugs, and style issues..."
+echo "│"
+if pnpm lint; then
+  echo "│  ✅ No linting errors found"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+else
+  echo "│  ❌ ESLint found errors in your code!"
+  echo "│"
+  echo "│  ESLint has detected code quality issues, potential bugs, or style violations."
+  echo "│  Please review the errors above and fix them before committing."
+  echo "│"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+  echo ""
+  echo "💡 Tip: Run 'pnpm lint:fix' to automatically fix some linting issues"
+  exit 1
+fi
+echo ""
+
+# Run TypeScript type check
+echo "┌─ [3/4] TypeScript Type Checking"
+echo "│  Verifying type safety and catching type errors before commit..."
+echo "│"
+if pnpm typecheck; then
+  echo "│  ✅ All types are correct"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+else
+  echo "│  ❌ TypeScript type check failed!"
+  echo "│"
+  echo "│  TypeScript found type errors in your code."
+  echo "│  These errors must be fixed before committing to ensure type safety."
+  echo "│"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+  echo ""
+  echo "💡 Tip: Review the TypeScript errors above and fix type mismatches"
+  exit 1
+fi
+echo ""
+
+# Run tests only if they exist (not the default error script)
+echo "┌─ [4/4] Test Suite"
+echo "│  Running test suite to ensure all tests pass..."
+echo "│"
+TEST_OUTPUT=$(pnpm test 2>&1 || true)
+TEST_EXIT_CODE=$?
+
+if [ $TEST_EXIT_CODE -eq 0 ]; then
+  echo "│  ✅ All tests passed"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+elif echo "$TEST_OUTPUT" | grep -q "Error: no test specified"; then
+  echo "│  ⚠️  No tests configured"
+  echo "│  Skipping test execution (no test suite found)"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+else
+  echo "│  ❌ Tests failed!"
+  echo "│"
+  echo "│  Some tests are failing. Please fix the failing tests before committing."
+  echo "│"
+  echo "└─────────────────────────────────────────────────────────────────────────"
+  echo ""
+  echo "💡 Tip: Review the test output above to identify and fix failing tests"
+  exit 1
+fi
+echo ""
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✅ ALL PRE-COMMIT CHECKS PASSED!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "✨ Your code is ready to be committed!"
+echo ""

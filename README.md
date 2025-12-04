@@ -1,8 +1,9 @@
 # Helixque Match API
 
-Helixque Match is a Fastify-based TypeScript service that exposes APIs for managing user preferences and related matchmaking features. The project is designed with modular components for configuration, routing, validation, and documentation to keep the codebase scalable and easy to extend.
+Helixque Match is a Fastify based TypeScript service that exposes APIs for managing user preferences and related matchmaking features. The project is designed with modular components for configuration, routing, validation, and documentation to keep the codebase scalable and easy to extend.
 
 ## Table of Contents
+
 - [Tech Stack](#tech-stack)
 - [Quick Start](#quick-start)
 - [Available Scripts](#available-scripts)
@@ -15,6 +16,7 @@ Helixque Match is a Fastify-based TypeScript service that exposes APIs for manag
 - [Development Notes](#development-notes)
 
 ## Tech Stack
+
 - **Runtime:** Node.js + TypeScript
 - **Framework:** Fastify 5
 - **Validation:** Zod
@@ -23,6 +25,7 @@ Helixque Match is a Fastify-based TypeScript service that exposes APIs for manag
 - **Tooling:** pnpm, ts-node-dev, TypeScript compiler
 
 ## Quick Start
+
 1. **Install dependencies** (pnpm is recommended):
    ```bash
    pnpm install
@@ -35,11 +38,13 @@ Helixque Match is a Fastify-based TypeScript service that exposes APIs for manag
 4. The API boots on `http://localhost:<PORT>` (defaults to `4000` via `.env`). Swagger UI is available at `/docs` once the server is running.
 
 ## Available Scripts
+
 - `pnpm dev`: Start the Fastify server with live reload via `ts-node-dev`.
 - `pnpm build`: Compile TypeScript sources to the `dist/` folder.
 - `pnpm start`: Run the compiled JavaScript from `dist/`.
 
 ## Environment Variables
+
 Configuration is loaded through `dotenv` and validated with Zod. Add a `.env` file with the following keys:
 
 ```dotenv
@@ -51,6 +56,7 @@ LOG_LEVEL=info
 Missing values fall back to the defaults defined in `src/config/env.ts`.
 
 ## Project Structure
+
 ```
 helixque-match/
 ├── package.json
@@ -79,6 +85,7 @@ helixque-match/
 ```
 
 ## Key Modules
+
 - **`src/server.ts`**: Entrypoint that builds the Fastify instance and starts listening. Safe to import in tests without auto-starting.
 - **`src/app.ts`**: Factory responsible for registering global plugins and routes. Returns the configured Fastify instance.
 - **`src/config/env.ts`**: Loads `.env` variables and validates them with Zod to ensure reliable defaults across environments.
@@ -92,13 +99,14 @@ helixque-match/
 - **`src/utils/logger.ts`**: Configures Pino logger according to environment (pretty output in development, JSON in production).
 
 ## API Surface
+
 Current endpoints (prefixed with `http://localhost:<PORT>`):
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `/health` | Health check for service monitoring |
-| GET | `/api/v1/preferences` | Fetch the list of stored preferences (returns an empty array placeholder) |
-| POST | `/api/v1/preferences` | Create a new preference; body validated by `PreferenceSchema` |
+| Method | Path                  | Description                                                               |
+| ------ | --------------------- | ------------------------------------------------------------------------- |
+| GET    | `/health`             | Health check for service monitoring                                       |
+| GET    | `/api/v1/preferences` | Fetch the list of stored preferences (returns an empty array placeholder) |
+| POST   | `/api/v1/preferences` | Create a new preference; body validated by `PreferenceSchema`             |
 
 Sample request body for `POST /api/v1/preferences`:
 
@@ -112,13 +120,16 @@ Sample request body for `POST /api/v1/preferences`:
 ```
 
 ## Logging
+
 Pino powers structured logging. The log level is controlled via `LOG_LEVEL`. In non-production environments, logs are prettified with timestamps and colors for human readability.
 
 ## Swagger Documentation
+
 - Swagger specification served at runtime under `/docs/json`.
 - Interactive documentation accessible via `http://localhost:<PORT>/docs` after the server starts.
 
 ## Development Notes
+
 - `dist/` is generated only after running `pnpm build` and should be excluded from source control.
 - Add new route modules under `src/routes/` and register them in `src/routes/index.ts` to keep API versioning consistent.
 - Place shared domain logic in `src/controllers/` and keep request validation in `src/schemas/` to maintain separation of concerns.
